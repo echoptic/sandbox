@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 
-#define CELL_SIZE 30
+#define CELL_SIZE 20
 
 #define WINDOW_WIDTH 600
 #define WINDOW_HEIGHT 600
@@ -42,43 +42,43 @@ void update(Grid grid)
         for (int row = 0; row < NUM_ROWS; row++)
             if (grid[col][row])
             {
-                if (col > 0 && grid[col - 1][row] == AIR)
+                if (grid[col][row] == SAND)
                 {
-                    grid[col][row] = 0;
-                    grid[col - 1][row] = 1;
+                    if (row < NUM_ROWS - 1 && grid[col][row + 1] == AIR)
+                    {
+                        grid[col][row] = 0;
+                        grid[col][row + 1] = 1;
+                    }
                 }
+
                 render(grid, col, row);
             }
 }
 
 void render(Grid grid, int col, int row)
 {
-    for (int col = 0; col < NUM_COLS; col++)
-        for (int row = 0; row < NUM_ROWS; row++)
-            if (grid[col][row])
-            {
-                SDL_Rect cell = {
-                    .x = col * CELL_SIZE,
-                    .y = row * CELL_SIZE,
-                    .w = CELL_SIZE,
-                    .h = CELL_SIZE,
-                };
+    if (grid[col][row])
+    {
+        SDL_Rect cell = {
+            .x = col * CELL_SIZE,
+            .y = row * CELL_SIZE,
+            .w = CELL_SIZE,
+            .h = CELL_SIZE,
+        };
 
-                // Add colors for particle ids
-                switch (grid[col][row])
-                {
-                case AIR:
-                    break;
-                case SAND:
-                    SDL_SetRenderDrawColor(renderer, 255, 255, 0, 0);
-                    break;
-                case STONE:
-                    SDL_SetRenderDrawColor(renderer, 100, 100, 100, 0);
-                    break;
-                }
+        // Add colors for particle ids
+        switch (grid[col][row])
+        {
+        case SAND:
+            SDL_SetRenderDrawColor(renderer, 255, 255, 0, 0);
+            break;
+        case STONE:
+            SDL_SetRenderDrawColor(renderer, 100, 100, 100, 0);
+            break;
+        }
 
-                SDL_RenderFillRect(renderer, &cell);
-            }
+        SDL_RenderFillRect(renderer, &cell);
+    }
 }
 
 void clear_grid(Grid grid)
@@ -92,7 +92,7 @@ void fill_grid(Grid grid)
 {
     for (int col = 0; col < NUM_COLS; col++)
         for (int row = 0; row < NUM_ROWS; row++)
-            grid[col][row] = SAND;
+            grid[col][row] = STONE;
 }
 
 void quit()
@@ -104,6 +104,7 @@ void quit()
 int main(int argc, char *argv[])
 {
     Uint32 last_update = SDL_GetTicks();
+
     // Look keyboard events
     Uint8 selected_particle;
     selected_particle = SAND;
@@ -125,6 +126,8 @@ int main(int argc, char *argv[])
 
     while (running)
     {
+        // grid[NUM_COLS - 1][NUM_ROWS - 1] = 1;
+
         // Calculate delta time
         Uint32 current = SDL_GetTicks();
         float dT = (current - last_update) / 1000.0f;
@@ -168,31 +171,24 @@ int main(int argc, char *argv[])
                 case SDLK_2:
                     selected_particle = STONE;
                     break;
+                default:
+                    break;
                 }
             }
             // Mouse click events
             else if (event.type == SDL_MOUSEBUTTONDOWN)
             {
-                switch (event.button.button)
-                {
-                case SDL_BUTTON_LEFT:
+                if (event.button.button == SDL_BUTTON_LEFT)
                     clicked = true;
-                default:
-                    break;
-                }
             }
             else if (event.type == SDL_MOUSEBUTTONUP)
-                switch (event.button.button)
-                {
-                case SDL_BUTTON_LEFT:
+                if (event.button.button == SDL_BUTTON_LEFT)
                     clicked = false;
-                default:
-                    break;
-                }
         } // SDL_PollEvent
 
         if (clicked)
-            grid[mouse.x / CELL_SIZE][mouse.y / CELL_SIZE] = selected_particle;
+            if (!grid[mouse.x / CELL_SIZE][mouse.y / CELL_SIZE])
+                grid[mouse.x / CELL_SIZE][mouse.y / CELL_SIZE] = selected_particle;
 
         // Rendering
         SDL_RenderClear(renderer);
