@@ -2,15 +2,15 @@
 #include <stdbool.h>
 #include <stdio.h>
 
-#define WIDTH 1024
-#define HEIGHT 768
+#define WIDTH 500
+#define HEIGHT 500
 
-#define ARRAY_SIZE 1000
-
-SDL_Window *window;
-SDL_Renderer *renderer;
-
-Vec2 particle_array[HEIGHT][WIDTH];
+enum Particles
+{
+    AIR,
+    SAND,
+    STONE,
+};
 
 typedef struct
 {
@@ -19,6 +19,9 @@ typedef struct
 
 void draw_particle(int x, int y);
 void add_to_array(Vec2 particle, Vec2 *particle_array, int index);
+
+SDL_Window *window;
+SDL_Renderer *renderer;
 
 Vec2 mouse;
 
@@ -46,6 +49,8 @@ Vec2 new_particle(int x, int y)
 
 int main(int argc, char *argv[])
 {
+    Vec2 particle_array[HEIGHT][WIDTH];
+
     bool running = true;
     bool clicked = false;
 
@@ -58,6 +63,8 @@ int main(int argc, char *argv[])
         SDL_WINDOW_SHOWN);
 
     renderer = SDL_CreateRenderer(window, -1, 0);
+
+    printf("%ld", (sizeof(particle_array) / sizeof(particle_array[0][0])));
 
     while (running)
     {
@@ -97,11 +104,12 @@ int main(int argc, char *argv[])
 
         if (clicked)
         {
-            for (int i = 0; i < ARRAY_SIZE; i++)
-            {
-                Vec2 particle = {.x = mouse.x, .y = mouse.y};
-                particle_array[h][w] = particle;
-            }
+            for (int h = 0; h < HEIGHT; h++)
+                for (int w = 0; w < WIDTH; w++)
+                {
+                    particle_array[h][w].x = mouse.x;
+                    particle_array[h][w].y = mouse.y;
+                }
         }
 
         // Rendering
@@ -110,7 +118,8 @@ int main(int argc, char *argv[])
         // Draw particles
         for (int h = 0; h < HEIGHT; h++)
             for (int w = 0; w < WIDTH; w++)
-                draw_particle(particle_array[h][w], particle_array[h][w]);
+                if (particle_array[h][w].y != AIR)
+                    draw_particle(particle_array[h][w].x, particle_array[h][w].y);
 
         SDL_RenderPresent(renderer);
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
