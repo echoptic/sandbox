@@ -1,4 +1,6 @@
-/.vscode
 *.o
+*.zip
+
+/.vscode
 /bin/main
 /bin/main.exe

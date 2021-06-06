@@ -1,24 +1,24 @@
 CC = gcc
 FLAGS = -g -Wall
 
-INCLUDES = -I include/
+INCLUDE = -I include/
 LIBS = -L lib/ -lSDL2main -lSDL2
 
-SOURCES = $(wildcard src/*.c)
+SOURCES = $(wildcard src/*.c) $(wildcard src/**/*.c)
 OBJECTS = $(SOURCES:.c=.o)
 
 BIN = bin/main
 
+.PHONY: all clean run
+
 all: $(OBJECTS)
-	$(CC) $(FLAGS) $(INCLUDES) $(SOURCES) $(LIBS) -o $(BIN)
+	$(CC) $(FLAGS) $(INCLUDE) $(OBJECTS) $(LIBS) -o $(BIN)
 
-$(OBJECTS):
-	$(CC) -c $(SOURCES) $(INCLUDES)
+$(OBJECTS): src/%.o: src/%.c
+	$(CC) $(FLAGS) $(INCLUDE) -c $< -o $@
 
-.PHONY: clean
 clean:
-	rm -rf *.o
+	rm -rf src/*.o src/**/*.o
 
-.PHONY: run
 run: all
 	$(BIN)

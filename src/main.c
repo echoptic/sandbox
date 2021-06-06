@@ -1,134 +1,219 @@
 #include "SDL2/SDL.h"
-#include <stdbool.h>
+#include "particles.h"
+
+#include <stdlib.h>
 #include <stdio.h>
+#include <stdbool.h>
 
-#define WIDTH 500
-#define HEIGHT 500
+#define CELL_SIZE 30
 
-enum Particles
-{
-    AIR,
-    SAND,
-    STONE,
-};
+#define WINDOW_WIDTH 600
+#define WINDOW_HEIGHT 600
 
-typedef struct
-{
-    int x, y;
-} Vec2;
+#define NUM_COLS WINDOW_WIDTH / CELL_SIZE
+#define NUM_ROWS WINDOW_HEIGHT / CELL_SIZE
 
-void draw_particle(int x, int y);
-void add_to_array(Vec2 particle, Vec2 *particle_array, int index);
+typedef int Grid[NUM_COLS][NUM_ROWS];
 
+Grid grid;
+
+SDL_Event event;
 SDL_Window *window;
 SDL_Renderer *renderer;
 
-Vec2 mouse;
+void update(Grid grid);
+// Render particles on screen
+void render(Grid grid, int col, int row);
 
-void draw_particle(int x, int y)
+// Sets all elements to 0
+void clear_grid(Grid grid);
+void fill_grid(Grid grid);
+
+void quit(void);
+
+struct
 {
-    SDL_Rect particle;
-    SDL_SetRenderDrawColor(renderer, 255, 255, 0, 0);
+    int x, y;
+} mouse;
 
-    particle.x = x;
-    particle.y = y;
-    particle.w = 10;
-    particle.h = 10;
-
-    SDL_RenderFillRect(renderer, &particle);
+void update(Grid grid)
+{
+    for (int col = 0; col < NUM_COLS; col++)
+        for (int row = 0; row < NUM_ROWS; row++)
+            if (grid[col][row])
+            {
+                if (col > 0 && grid[col - 1][row] == AIR)
+                {
+                    grid[col][row] = 0;
+                    grid[col - 1][row] = 1;
+                }
+                render(grid, col, row);
+            }
 }
 
-Vec2 new_particle(int x, int y)
+void render(Grid grid, int col, int row)
 {
-    Vec2 particle;
-    particle.x = x;
-    particle.y = y;
+    for (int col = 0; col < NUM_COLS; col++)
+        for (int row = 0; row < NUM_ROWS; row++)
+            if (grid[col][row])
+            {
+                SDL_Rect cell = {
+                    .x = col * CELL_SIZE,
+                    .y = row * CELL_SIZE,
+                    .w = CELL_SIZE,
+                    .h = CELL_SIZE,
+                };
 
-    return particle;
+                // Add colors for particle ids
+                switch (grid[col][row])
+                {
+                case AIR:
+                    break;
+                case SAND:
+                    SDL_SetRenderDrawColor(renderer, 255, 255, 0, 0);
+                    break;
+                case STONE:
+                    SDL_SetRenderDrawColor(renderer, 100, 100, 100, 0);
+                    break;
+                }
+
+                SDL_RenderFillRect(renderer, &cell);
+            }
+}
+
+void clear_grid(Grid grid)
+{
+    for (int col = 0; col < NUM_COLS; col++)
+        for (int row = 0; row < NUM_ROWS; row++)
+            grid[col][row] = AIR;
+}
+
+void fill_grid(Grid grid)
+{
+    for (int col = 0; col < NUM_COLS; col++)
+        for (int row = 0; row < NUM_ROWS; row++)
+            grid[col][row] = SAND;
+}
+
+void quit()
+{
+    SDL_DestroyWindow(window);
+    SDL_DestroyRenderer(renderer);
 }
 
 int main(int argc, char *argv[])
 {
-    Vec2 particle_array[HEIGHT][WIDTH];
+    Uint32 last_update = SDL_GetTicks();
+    // Look keyboard events
+    Uint8 selected_particle;
+    selected_particle = SAND;
 
     bool running = true;
     bool clicked = false;
+    bool paused = false;
 
     SDL_Init(SDL_INIT_VIDEO);
     window = SDL_CreateWindow(
         "Sandbox",
         SDL_WINDOWPOS_UNDEFINED,
         SDL_WINDOWPOS_UNDEFINED,
-        WIDTH, HEIGHT,
+        WINDOW_WIDTH,
+        WINDOW_HEIGHT,
         SDL_WINDOW_SHOWN);
 
-    renderer = SDL_CreateRenderer(window, -1, 0);
-
-    printf("%ld", (sizeof(particle_array) / sizeof(particle_array[0][0])));
+    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_PRESENTVSYNC);
 
     while (running)
     {
-        SDL_Event event;
+        // Calculate delta time
+        Uint32 current = SDL_GetTicks();
+        float dT = (current - last_update) / 1000.0f;
+
+        // FPS Counter
+        Uint64 start = SDL_GetPerformanceCounter();
+
         while (SDL_PollEvent(&event))
         {
-            switch (event.type)
+            if (event.type == SDL_QUIT)
             {
-            case SDL_QUIT:
                 running = false;
-                break;
-
-            // Mouse movement
-            case SDL_MOUSEMOTION:
+            }
+            else if (event.type == SDL_MOUSEMOTION)
                 SDL_GetMouseState(&mouse.x, &mouse.y);
 
-            // Mouse clicked
-            case SDL_MOUSEBUTTONDOWN:
+            // Keyboard events
+            else if (event.type == SDL_KEYDOWN)
+            {
+                switch (event.key.keysym.sym)
+                {
+                case SDLK_c:
+                    clear_grid(grid);
+                    break;
+
+                case SDLK_f:
+                    fill_grid(grid);
+                    break;
+
+                case SDLK_SPACE:
+                    paused = !paused;
+                    break;
+
+                // Select particles 0-9
+                case SDLK_0:
+                    selected_particle = AIR;
+                    break;
+                case SDLK_1:
+                    selected_particle = SAND;
+                    break;
+                case SDLK_2:
+                    selected_particle = STONE;
+                    break;
+                }
+            }
+            // Mouse click events
+            else if (event.type == SDL_MOUSEBUTTONDOWN)
+            {
                 switch (event.button.button)
                 {
                 case SDL_BUTTON_LEFT:
                     clicked = true;
+                default:
                     break;
                 }
-                break;
-            case SDL_MOUSEBUTTONUP:
+            }
+            else if (event.type == SDL_MOUSEBUTTONUP)
                 switch (event.button.button)
                 {
                 case SDL_BUTTON_LEFT:
                     clicked = false;
+                default:
                     break;
                 }
-                break;
-            }
-            break;
-        }
+        } // SDL_PollEvent
 
         if (clicked)
-        {
-            for (int h = 0; h < HEIGHT; h++)
-                for (int w = 0; w < WIDTH; w++)
-                {
-                    particle_array[h][w].x = mouse.x;
-                    particle_array[h][w].y = mouse.y;
-                }
-        }
+            grid[mouse.x / CELL_SIZE][mouse.y / CELL_SIZE] = selected_particle;
 
         // Rendering
         SDL_RenderClear(renderer);
 
-        // Draw particles
-        for (int h = 0; h < HEIGHT; h++)
-            for (int w = 0; w < WIDTH; w++)
-                if (particle_array[h][w].y != AIR)
-                    draw_particle(particle_array[h][w].x, particle_array[h][w].y);
+        update(grid);
 
         SDL_RenderPresent(renderer);
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
+
+        // Possible pause implementation
+        if (!paused)
+        {
+        }
+
+        // FPS and dT Counter
+        last_update = current;
+        Uint64 end = SDL_GetPerformanceCounter();
+        float elapsed = (end - start) / (float)SDL_GetPerformanceFrequency();
+        printf("\rFPS: %f dT: %f", 1.0f / elapsed, dT);
     }
 
-    SDL_DestroyWindow(window);
-    SDL_DestroyRenderer(renderer);
-
-    free(particle_array);
-
+    quit();
     return 0;
 }
