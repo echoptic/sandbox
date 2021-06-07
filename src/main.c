@@ -13,7 +13,7 @@
 #define NUM_COLS WINDOW_WIDTH / CELL_SIZE
 #define NUM_ROWS WINDOW_HEIGHT / CELL_SIZE
 
-typedef int Grid[NUM_COLS][NUM_ROWS];
+typedef Uint64 Grid[NUM_COLS][NUM_ROWS];
 
 Grid grid;
 
@@ -186,8 +186,9 @@ int main(int argc, char *argv[])
                     clicked = false;
         } // SDL_PollEvent
 
+        // Placing particles
         if (clicked)
-            if (!grid[mouse.x / CELL_SIZE][mouse.y / CELL_SIZE])
+            if (!grid[mouse.x / CELL_SIZE][mouse.y / CELL_SIZE] || selected_particle == AIR)
                 grid[mouse.x / CELL_SIZE][mouse.y / CELL_SIZE] = selected_particle;
 
         // Rendering
