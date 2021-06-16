@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 
-#define CELL_SIZE 20
+#define CELL_SIZE 10
 
 #define WINDOW_WIDTH 600
 #define WINDOW_HEIGHT 600
@@ -92,7 +92,7 @@ void fill_grid(Grid grid)
 {
     for (int col = 0; col < NUM_COLS; col++)
         for (int row = 0; row < NUM_ROWS; row++)
-            grid[col][row] = STONE;
+            grid[col][row] = SAND;
 }
 
 void quit()

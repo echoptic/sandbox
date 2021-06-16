@@ -22,3 +22,7 @@ clean:
 
 run: all
 	$(BIN)
+
+cmake:
+	cd build
+	make
